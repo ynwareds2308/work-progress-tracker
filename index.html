@@ -1,0 +1,1226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<title>Work Progress Tracker</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#0f1117;--surface:#1a1d27;--surface2:#22263a;--border:#2e3250;
+  --accent:#6c63ff;--accent2:#4ecdc4;--warn:#f7b731;--danger:#ee5a24;
+  --success:#26de81;--text:#e8eaf6;--muted:#7986cb;--radius:10px;
+  --nav-h:58px;--header-h:54px;
+  /* Priority colors */
+  --c-high:#ee5a24;--c-high-bg:#ee5a2418;
+  --c-medium:#f7b731;--c-medium-bg:#f7b73118;
+  --c-low:#26de81;--c-low-bg:#26de8118;
+  /* Status colors */
+  --c-notstarted:#7986cb;--c-notstarted-bg:#7986cb18;
+  --c-inprogress:#4ecdc4;--c-inprogress-bg:#4ecdc418;
+  --c-done:#26de81;--c-done-bg:#26de8118;
+  /* Category colors */
+  --c-cat0:#6c63ff;--c-cat0-bg:#6c63ff18;
+  --c-cat1:#f7b731;--c-cat1-bg:#f7b73118;
+  --c-cat2:#4ecdc4;--c-cat2-bg:#4ecdc418;
+  --c-cat3:#ee5a24;--c-cat3-bg:#ee5a2418;
+  --c-cat4:#26de81;--c-cat4-bg:#26de8118;
+  --c-cat5:#a29bfe;--c-cat5-bg:#a29bfe18;
+}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;overflow-x:hidden}
+
+/* ── Header ── */
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:0 14px;height:var(--header-h);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;gap:10px}
+header h1{font-size:1rem;font-weight:700;color:var(--accent);white-space:nowrap}
+#cycleLabel{font-size:.68rem;color:var(--muted);text-align:right;line-height:1.4;min-width:0}
+/* Color mode picker */
+.color-mode-bar{display:flex;align-items:center;gap:6px;background:var(--surface2);border-radius:20px;padding:4px 10px;flex-shrink:0}
+.color-mode-bar label{font-size:.68rem;color:var(--muted);white-space:nowrap}
+.color-mode-bar select{background:none;border:none;color:var(--text);font-size:.72rem;outline:none;cursor:pointer;padding:2px 4px;font-weight:600}
+
+/* ── Desktop nav ── */
+#desktopNav{display:flex;gap:5px;background:var(--surface);padding:9px 16px;border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none}
+#desktopNav::-webkit-scrollbar{display:none}
+#desktopNav button{background:none;border:1px solid var(--border);color:var(--muted);padding:6px 13px;border-radius:20px;cursor:pointer;font-size:.78rem;white-space:nowrap;transition:.2s;min-height:34px}
+#desktopNav button.active,#desktopNav button:hover{background:var(--accent);border-color:var(--accent);color:#fff}
+
+/* ── Mobile nav ── */
+#mobileNav{display:none;position:fixed;bottom:0;left:0;right:0;height:var(--nav-h);background:var(--surface);border-top:1px solid var(--border);z-index:100;padding-bottom:env(safe-area-inset-bottom)}
+#mobileNav .mnav-inner{display:flex;height:var(--nav-h);align-items:center;justify-content:space-around}
+.mnav-btn{display:flex;flex-direction:column;align-items:center;gap:2px;padding:5px 6px;border:none;background:none;color:var(--muted);cursor:pointer;flex:1;border-radius:8px;transition:.2s}
+.mnav-btn.active{color:var(--accent)}
+.mnav-btn .icon{font-size:1.2rem;line-height:1}
+.mnav-btn .lbl{font-size:.55rem;white-space:nowrap}
+
+main{padding:14px;max-width:960px;margin:0 auto}
+.section{display:none}.section.active{display:block}
+h2{font-size:.76rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1.2px;margin-bottom:12px}
+
+/* ── Color-coded task card ── */
+.task-card{border-radius:var(--radius);padding:14px;margin-bottom:11px;border-left:4px solid;transition:.2s;position:relative;overflow:hidden}
+.task-card::before{content:'';position:absolute;inset:0;opacity:.07;pointer-events:none}
+/* by priority */
+.tc-high{border-left-color:var(--c-high);background:var(--surface)}.tc-high::before{background:var(--c-high)}
+.tc-medium{border-left-color:var(--c-medium);background:var(--surface)}.tc-medium::before{background:var(--c-medium)}
+.tc-low{border-left-color:var(--c-low);background:var(--surface)}.tc-low::before{background:var(--c-low)}
+/* by status */
+.tc-notstarted{border-left-color:var(--c-notstarted);background:var(--surface)}.tc-notstarted::before{background:var(--c-notstarted)}
+.tc-inprogress{border-left-color:var(--c-inprogress);background:var(--surface)}.tc-inprogress::before{background:var(--c-inprogress)}
+.tc-done{border-left-color:var(--c-done);background:var(--surface)}.tc-done::before{background:var(--c-done)}
+/* by category */
+.tc-cat0{border-left-color:var(--c-cat0);background:var(--surface)}.tc-cat0::before{background:var(--c-cat0)}
+.tc-cat1{border-left-color:var(--c-cat1);background:var(--surface)}.tc-cat1::before{background:var(--c-cat1)}
+.tc-cat2{border-left-color:var(--c-cat2);background:var(--surface)}.tc-cat2::before{background:var(--c-cat2)}
+.tc-cat3{border-left-color:var(--c-cat3);background:var(--surface)}.tc-cat3::before{background:var(--c-cat3)}
+.tc-cat4{border-left-color:var(--c-cat4);background:var(--surface)}.tc-cat4::before{background:var(--c-cat4)}
+.tc-cat5{border-left-color:var(--c-cat5);background:var(--surface)}.tc-cat5::before{background:var(--c-cat5)}
+
+.card-header{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;position:relative}
+.tag{font-size:.62rem;padding:3px 7px;border-radius:8px;font-weight:700;text-transform:uppercase;white-space:nowrap}
+.tag.high{background:var(--c-high-bg);color:var(--c-high)}
+.tag.medium{background:var(--c-medium-bg);color:var(--c-medium)}
+.tag.low{background:var(--c-low-bg);color:var(--c-low)}
+.tag.done{background:var(--c-done-bg);color:var(--c-done)}
+.tag.inprogress{background:var(--c-inprogress-bg);color:var(--c-inprogress)}
+.tag.notstarted{background:var(--c-notstarted-bg);color:var(--c-notstarted)}
+.prog-wrap{background:var(--surface2);border-radius:4px;height:6px;margin:9px 0 4px;position:relative}
+.prog-bar{height:6px;border-radius:4px;transition:.4s}
+.prog-label{font-size:.7rem;color:var(--muted);display:flex;justify-content:space-between}
+.dep-box{margin-top:7px;padding:6px 10px;border-radius:0 6px 6px 0;font-size:.73rem}
+.dep-blocked{background:#ee5a2415;border-left:3px solid var(--c-high)}.dep-blocking{background:#6c63ff15;border-left:3px solid var(--accent)}.dep-clear{background:#26de8115;border-left:3px solid var(--c-done)}
+
+/* ── Stats ── */
+.stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
+@media(max-width:480px){.stat-row{grid-template-columns:repeat(2,1fr)}}
+.stat{border-radius:var(--radius);padding:12px 10px;text-align:center;border-left:3px solid;background:var(--surface)}
+.stat-num{font-size:1.5rem;font-weight:800}
+.stat-label{font-size:.62rem;color:var(--muted);margin-top:2px;text-transform:uppercase;letter-spacing:.5px}
+
+/* ── Cycle bar ── */
+.cycle-header{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:13px 15px;margin-bottom:15px}
+.cycle-title{font-weight:700;font-size:.98rem;margin-bottom:4px}
+.week-grid{display:grid;grid-template-columns:repeat(16,1fr);gap:3px;margin:9px 0 7px}
+.wk{height:15px;border-radius:3px;background:var(--surface2)}
+.wk.done-wk{background:var(--accent)}.wk.current-wk{background:var(--accent2)}
+.cycle-meta{display:flex;gap:10px;font-size:.68rem;color:var(--muted);flex-wrap:wrap}
+
+/* ── Dashboard panels ── */
+.dash-grid{display:grid;grid-template-columns:1fr 1fr;gap:13px;margin-bottom:14px}
+.dash-grid .full{grid-column:1/-1}
+@media(max-width:540px){.dash-grid{grid-template-columns:1fr}}
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:13px}
+.panel-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:11px}
+.panel-title{font-size:.74rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px}
+.week-section{margin-bottom:11px}
+.week-label{font-size:.68rem;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.8px;margin-bottom:5px;display:flex;align-items:center;gap:5px}
+.week-label span{font-size:.58rem;padding:1px 6px;border-radius:8px;color:#fff}
+.mini-task{display:flex;align-items:center;gap:7px;padding:6px 8px;border-radius:7px;margin-bottom:4px;border-left:3px solid;cursor:default}
+.mini-task-name{flex:1;font-size:.81rem;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mini-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.alert-item{display:flex;align-items:flex-start;gap:8px;padding:7px 0;border-bottom:1px solid var(--border)}
+.alert-item:last-child{border-bottom:none}
+
+/* ── Category pill ── */
+.cat-pill{display:inline-flex;align-items:center;gap:4px;font-size:.62rem;padding:3px 8px;border-radius:10px;font-weight:700;text-transform:uppercase}
+
+/* ── Category legend ── */
+.cat-legend{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.cat-legend-item{display:flex;align-items:center;gap:5px;font-size:.72rem;cursor:pointer;padding:4px 8px;border-radius:8px;border:1px solid var(--border);transition:.15s}
+.cat-legend-item:hover{border-color:var(--accent)}
+.cat-legend-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+
+/* ── Calendar ── */
+.cal-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:8px}
+.cal-nav-title{font-size:.95rem;font-weight:700;flex:1;text-align:center}
+.cal-view-btn{padding:5px 11px;border-radius:16px;border:1px solid var(--border);background:none;color:var(--muted);cursor:pointer;font-size:.74rem;font-weight:600;transition:.2s}
+.cal-view-btn.active{background:var(--accent);border-color:var(--accent);color:#fff}
+.cal-month-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.cal-day-name{text-align:center;font-size:.62rem;font-weight:700;color:var(--muted);padding:4px 0;text-transform:uppercase}
+.cal-day{min-height:74px;background:var(--surface2);border-radius:6px;padding:5px;cursor:pointer;transition:.15s;border:1px solid transparent}
+.cal-day:hover{border-color:var(--accent)}.cal-day.other-month{opacity:.3}
+.cal-day.today{border-color:var(--accent2)}.cal-day.selected{border-color:var(--accent);background:var(--surface)}
+.cal-day-num{font-size:.7rem;font-weight:700;margin-bottom:2px;color:var(--muted)}
+.cal-day.today .cal-day-num{color:var(--accent2);font-weight:800}
+.cal-evt{font-size:.58rem;padding:2px 5px;border-radius:4px;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:700;cursor:pointer;border-left:2px solid}
+.cal-week-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
+.cal-week-day{background:var(--surface2);border-radius:8px;padding:9px 7px;min-height:120px;border:1px solid transparent;cursor:pointer;transition:.15s}
+.cal-week-day:hover{border-color:var(--accent)}.cal-week-day.today{border-color:var(--accent2)}.cal-week-day.selected{border-color:var(--accent);background:var(--surface)}
+.cal-week-day-name{font-size:.62rem;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:2px}
+.cal-week-day-num{font-size:.95rem;font-weight:800;margin-bottom:7px}
+.cal-week-evt{font-size:.66rem;padding:4px 6px;border-radius:5px;margin-bottom:3px;font-weight:700;cursor:pointer;border-left:2px solid}
+.cal-day-panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:13px;margin-top:13px}
+.cal-day-panel-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:11px;flex-wrap:wrap;gap:6px}
+.cal-day-panel-title{font-size:.9rem;font-weight:700}
+.cal-task-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;margin-bottom:8px;cursor:pointer;transition:.15s;border-left:4px solid}
+.cal-task-item:hover{filter:brightness(1.1)}
+.cal-task-info{flex:1;min-width:0}
+.cal-task-title{font-size:.84rem;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cal-task-meta{font-size:.68rem;color:var(--muted);margin-top:2px}
+
+/* ── Session links ── */
+.sess-cat-tabs{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:13px}
+.cat-tab{padding:5px 12px;border-radius:20px;border:1px solid var(--border);background:none;color:var(--muted);cursor:pointer;font-size:.77rem;font-weight:600;transition:.2s}
+.cat-tab.active{color:#fff}
+.cat-tab[data-cat="All"].active{background:var(--muted);border-color:var(--muted)}
+.cat-tab[data-cat="Warm Up"].active{background:var(--c-medium);border-color:var(--c-medium);color:#111}
+.cat-tab[data-cat="Technical"].active{background:var(--accent);border-color:var(--accent)}
+.cat-tab[data-cat="Games"].active{background:var(--c-done);border-color:var(--c-done);color:#111}
+.cat-tab[data-cat="Drills"].active{background:var(--accent2);border-color:var(--accent2);color:#111}
+.link-card{background:var(--surface);border-radius:var(--radius);padding:12px 13px;margin-bottom:9px;display:flex;align-items:flex-start;gap:11px;border-left:4px solid}
+.link-card[data-cat="Warm Up"]{border-left-color:var(--c-medium)}
+.link-card[data-cat="Technical"]{border-left-color:var(--accent)}
+.link-card[data-cat="Games"]{border-left-color:var(--c-done)}
+.link-card[data-cat="Drills"]{border-left-color:var(--accent2)}
+.link-thumb{width:38px;height:38px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0}
+.link-thumb[data-cat="Warm Up"]{background:var(--c-medium-bg)}.link-thumb[data-cat="Technical"]{background:var(--c-cat0-bg)}.link-thumb[data-cat="Games"]{background:var(--c-done-bg)}.link-thumb[data-cat="Drills"]{background:var(--c-inprogress-bg)}
+.link-body{flex:1;min-width:0}
+.link-title{font-weight:600;font-size:.85rem;margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.link-url{font-size:.69rem;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-bottom:4px}
+.link-cat-badge{display:inline-block;font-size:.59rem;font-weight:700;padding:2px 6px;border-radius:8px;text-transform:uppercase}
+.link-cat-badge[data-cat="Warm Up"]{background:var(--c-medium-bg);color:var(--c-medium)}
+.link-cat-badge[data-cat="Technical"]{background:var(--c-cat0-bg);color:var(--accent)}
+.link-cat-badge[data-cat="Games"]{background:var(--c-done-bg);color:var(--c-done)}
+.link-cat-badge[data-cat="Drills"]{background:var(--c-inprogress-bg);color:var(--accent2)}
+
+/* ── Log / Notes ── */
+.log-item{display:flex;gap:10px;margin-bottom:12px;padding:10px;border-radius:8px;border-left:3px solid;background:var(--surface)}
+.log-dot{width:8px;height:8px;border-radius:50%;margin-top:4px;flex-shrink:0}
+.log-content .meta{font-size:.68rem;color:var(--muted);margin-bottom:2px}
+.note-item{border-radius:0 8px 8px 0;padding:10px 13px;margin-bottom:9px;border-left:4px solid;background:var(--surface)}
+.note-item .meta{font-size:.68rem;color:var(--muted);margin-bottom:3px}
+
+/* ── Reflect ── */
+.reflect-card{background:var(--surface);border-radius:var(--radius);padding:14px;margin-bottom:11px;border-top:3px solid var(--accent)}
+
+/* ── Map ── */
+#mapCanvas{width:100%;border-radius:var(--radius);border:1px solid var(--border);background:var(--surface);display:block;touch-action:none}
+.map-legend{display:flex;gap:10px;flex-wrap:wrap;font-size:.69rem;color:var(--muted);margin-top:7px}
+.map-legend span{display:flex;align-items:center;gap:4px}
+.map-legend i{display:inline-block;width:11px;height:4px;border-radius:2px}
+
+/* ── Export ── */
+.export-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:11px}
+.export-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:13px;display:flex;flex-direction:column;gap:7px;border-top:3px solid var(--accent)}
+.export-card h3{font-size:.85rem;font-weight:600}
+.export-card p{font-size:.73rem;color:var(--muted);flex:1}
+
+/* ── Forms ── */
+.form-group{margin-bottom:12px}
+label{display:block;font-size:.76rem;color:var(--muted);margin-bottom:4px}
+input,select,textarea{width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:8px;font-size:.88rem;outline:none;transition:.2s;-webkit-appearance:none}
+input:focus,select:focus,textarea:focus{border-color:var(--accent)}
+textarea{resize:vertical;min-height:66px}
+select option{background:var(--surface2)}
+.btn{padding:9px 16px;border-radius:8px;border:none;cursor:pointer;font-size:.83rem;font-weight:600;transition:.2s;min-height:38px}
+.btn-primary{background:var(--accent);color:#fff}.btn-primary:hover{opacity:.85}
+.btn-ghost{background:none;border:1px solid var(--border);color:var(--muted)}.btn-ghost:hover{border-color:var(--accent);color:var(--accent)}
+.btn-danger{background:none;border:1px solid var(--c-high);color:var(--c-high)}.btn-danger:hover{background:var(--c-high);color:#fff}
+.btn-success{background:var(--c-done);color:#0f1117}
+.btn-sm{padding:6px 11px;font-size:.74rem;min-height:32px}
+.btn-icon{padding:5px 7px;min-height:30px;min-width:30px}
+.row{display:flex;gap:9px;flex-wrap:wrap}.row .form-group{flex:1;min-width:125px}
+.flex-end{display:flex;justify-content:flex-end;gap:8px;margin-top:13px}
+
+/* ── Modal ── */
+.modal-bg{display:none;position:fixed;inset:0;background:#000c;z-index:200;align-items:flex-end;justify-content:center}
+.modal-bg.open{display:flex}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius) var(--radius) 0 0;padding:18px 17px;width:100%;max-width:520px;max-height:92vh;overflow-y:auto;padding-bottom:calc(16px + env(safe-area-inset-bottom))}
+.modal h3{margin-bottom:13px;font-size:.98rem}
+.modal-handle{width:34px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 13px}
+.empty{text-align:center;padding:28px 14px;color:var(--muted);font-size:.83rem}
+.fab{display:none;position:fixed;right:16px;bottom:calc(var(--nav-h)+14px+env(safe-area-inset-bottom));width:50px;height:50px;border-radius:50%;background:var(--accent);border:none;color:#fff;font-size:1.5rem;cursor:pointer;box-shadow:0 4px 18px #6c63ff55;z-index:99;align-items:center;justify-content:center}
+
+@media(max-width:640px){
+  #desktopNav{display:none}#mobileNav{display:flex}.fab{display:flex}
+  main{padding:11px 11px calc(var(--nav-h)+66px+env(safe-area-inset-bottom))}
+  .cal-month-grid .cal-day{min-height:52px}
+  .cal-week-grid{gap:3px}.cal-week-day{padding:6px 4px;min-height:85px}.cal-week-day-num{font-size:.78rem}
+  .color-mode-bar label{display:none}
+}
+@media(min-width:641px){
+  .modal-bg{align-items:center}.modal{border-radius:var(--radius);max-height:85vh}.modal-handle{display:none}
+}
+
+/* Color swatch grid for category editor */
+.swatch-row{display:flex;gap:7px;flex-wrap:wrap;margin-top:6px}
+.swatch{width:26px;height:26px;border-radius:50%;cursor:pointer;border:3px solid transparent;transition:.15s}
+.swatch.active{border-color:#fff;transform:scale(1.15)}
+</style>
+</head>
+<body>
+<header>
+  <h1>⚡ Work Tracker</h1>
+  <div class="color-mode-bar">
+    <label>Color by</label>
+    <select id="colorModeSelect" onchange="setColorMode(this.value)">
+      <option value="priority">Priority</option>
+      <option value="status">Status</option>
+      <option value="category">Category</option>
+    </select>
+  </div>
+  <div id="cycleLabel" style="font-size:.68rem;color:var(--muted);text-align:right;line-height:1.4;min-width:0"></div>
+</header>
+
+<nav id="desktopNav">
+  <button class="active" onclick="show('dashboard',this)">Dashboard</button>
+  <button onclick="show('tasks',this)">Tasks</button>
+  <button onclick="show('calendar',this)">Calendar</button>
+  <button onclick="show('log',this)">Progress Log</button>
+  <button onclick="show('notes',this)">Notes</button>
+  <button onclick="show('reflect',this)">Reflection</button>
+  <button onclick="show('sessions',this)">Session Links</button>
+  <button onclick="show('depmap',this)">Dep Map</button>
+  <button onclick="show('export',this)">Export</button>
+  <button onclick="show('cycles',this)">Cycles</button>
+</nav>
+
+<main>
+<!-- DASHBOARD -->
+<div id="dashboard" class="section active">
+  <div id="cycleBar"></div>
+  <div class="stat-row" id="statsGrid"></div>
+  <div class="dash-grid">
+    <div class="panel full">
+      <div class="panel-header">
+        <span class="panel-title">📅 Upcoming by Week</span>
+        <button class="btn btn-ghost btn-sm" onclick="show('tasks',document.querySelector('#desktopNav button:nth-child(2)'))">View All</button>
+      </div>
+      <div id="upcomingList"></div>
+    </div>
+    <div class="panel"><div class="panel-header"><span class="panel-title">🔥 In Progress</span></div><div id="dashInProgress"></div></div>
+    <div class="panel"><div class="panel-header"><span class="panel-title">🚨 Needs Attention</span></div><div id="dashAlerts"></div></div>
+  </div>
+</div>
+
+<!-- TASKS -->
+<div id="tasks" class="section">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:11px">
+    <h2 style="margin:0">All Tasks</h2>
+    <button class="btn btn-primary btn-sm" onclick="openModal('taskModal')">+ Task</button>
+  </div>
+  <div style="display:flex;gap:7px;margin-bottom:11px;flex-wrap:wrap">
+    <select id="filterStatus" onchange="renderTasks()" style="width:auto;padding:7px 10px;font-size:.78rem">
+      <option value="">All Status</option><option>Not Started</option><option>In Progress</option><option>Done</option>
+    </select>
+    <select id="filterPriority" onchange="renderTasks()" style="width:auto;padding:7px 10px;font-size:.78rem">
+      <option value="">All Priority</option><option>High</option><option>Medium</option><option>Low</option>
+    </select>
+    <select id="filterCategory" onchange="renderTasks()" style="width:auto;padding:7px 10px;font-size:.78rem">
+      <option value="">All Categories</option>
+    </select>
+  </div>
+  <div id="taskList"></div>
+</div>
+
+<!-- CALENDAR -->
+<div id="calendar" class="section">
+  <div class="cal-nav">
+    <button class="btn btn-ghost btn-sm btn-icon" onclick="calMove(-1)">‹</button>
+    <div class="cal-nav-title" id="calTitle"></div>
+    <button class="btn btn-ghost btn-sm btn-icon" onclick="calMove(1)">›</button>
+    <div style="display:flex;gap:4px">
+      <button class="cal-view-btn active" id="btnMonth" onclick="setCalView('month')">Month</button>
+      <button class="cal-view-btn" id="btnWeek" onclick="setCalView('week')">Week</button>
+    </div>
+  </div>
+  <div id="calGrid"></div>
+  <div id="calDayPanel"></div>
+</div>
+
+<!-- LOG -->
+<div id="log" class="section">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:11px">
+    <h2 style="margin:0">Progress Log</h2>
+    <button class="btn btn-primary btn-sm" onclick="openModal('logModal')">+ Entry</button>
+  </div>
+  <div id="logList"></div>
+</div>
+
+<!-- NOTES -->
+<div id="notes" class="section">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:11px">
+    <h2 style="margin:0">Notes & Records</h2>
+    <button class="btn btn-primary btn-sm" onclick="openModal('noteModal')">+ Note</button>
+  </div>
+  <div id="noteList"></div>
+</div>
+
+<!-- REFLECT -->
+<div id="reflect" class="section">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:11px">
+    <h2 style="margin:0">Weekly Reflection</h2>
+    <button class="btn btn-primary btn-sm" onclick="openModal('reflectModal')">+ Reflect</button>
+  </div>
+  <div id="reflectList"></div>
+</div>
+
+<!-- SESSIONS -->
+<div id="sessions" class="section">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:13px">
+    <h2 style="margin:0">Session Links</h2>
+    <button class="btn btn-primary btn-sm" onclick="openModal('sessionModal')">+ Link</button>
+  </div>
+  <div class="sess-cat-tabs">
+    <button class="cat-tab active" data-cat="All" onclick="filterSessions('All',this)">All</button>
+    <button class="cat-tab" data-cat="Warm Up" onclick="filterSessions('Warm Up',this)">🔥 Warm Up</button>
+    <button class="cat-tab" data-cat="Technical" onclick="filterSessions('Technical',this)">🎯 Technical</button>
+    <button class="cat-tab" data-cat="Games" onclick="filterSessions('Games',this)">🏆 Games</button>
+    <button class="cat-tab" data-cat="Drills" onclick="filterSessions('Drills',this)">⚡ Drills</button>
+  </div>
+  <div id="sessionList"></div>
+</div>
+
+<!-- DEP MAP -->
+<div id="depmap" class="section">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:11px">
+    <h2 style="margin:0">Dependency Map</h2>
+    <button class="btn btn-ghost btn-sm" onclick="drawMap()">↺ Refresh</button>
+  </div>
+  <div style="font-size:.72rem;color:var(--muted);margin-bottom:8px">Map colors follow your selected color mode above.</div>
+  <canvas id="mapCanvas"></canvas>
+  <div class="map-legend" style="margin-top:9px" id="mapLegend"></div>
+  <p style="font-size:.7rem;color:var(--muted);margin-top:7px">Drag nodes to rearrange.</p>
+</div>
+
+<!-- EXPORT -->
+<div id="export" class="section">
+  <h2>Export Records</h2>
+  <div class="export-grid">
+    <div class="export-card"><h3>📋 Tasks CSV</h3><p>Tasks with all fields including category and due date.</p><button class="btn btn-primary" onclick="exportCSV('tasks')">Download</button></div>
+    <div class="export-card"><h3>📊 Log CSV</h3><p>All progress entries with task links.</p><button class="btn btn-primary" onclick="exportCSV('logs')">Download</button></div>
+    <div class="export-card"><h3>🗒️ Notes CSV</h3><p>Notes with task references.</p><button class="btn btn-primary" onclick="exportCSV('notes')">Download</button></div>
+    <div class="export-card"><h3>🪞 Reflections CSV</h3><p>Weekly reflections — wins, challenges, intentions.</p><button class="btn btn-primary" onclick="exportCSV('reflections')">Download</button></div>
+    <div class="export-card"><h3>🔗 Sessions CSV</h3><p>Session links with categories and URLs.</p><button class="btn btn-primary" onclick="exportCSV('sessions')">Download</button></div>
+    <div class="export-card"><h3>📦 Full Backup</h3><p>Everything in one JSON file.</p><button class="btn btn-success" onclick="exportJSON()">Download</button></div>
+    <div class="export-card"><h3>📥 Import</h3><p>Restore from a JSON backup file.</p>
+      <input type="file" id="importFile" accept=".json" style="display:none" onchange="importJSON(event)"/>
+      <button class="btn btn-ghost" onclick="document.getElementById('importFile').click()">Choose File</button>
+    </div>
+  </div>
+</div>
+
+<!-- CYCLES -->
+<div id="cycles" class="section">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:11px">
+    <h2 style="margin:0">16-Week Cycles</h2>
+    <button class="btn btn-primary btn-sm" onclick="openModal('cycleModal')">+ Cycle</button>
+  </div>
+  <div id="cycleList"></div>
+</div>
+</main>
+
+<!-- Mobile nav -->
+<nav id="mobileNav">
+  <div class="mnav-inner">
+    <button class="mnav-btn active" onclick="mshow('dashboard',this)"><span class="icon">🏠</span><span class="lbl">Home</span></button>
+    <button class="mnav-btn" onclick="mshow('tasks',this)"><span class="icon">✅</span><span class="lbl">Tasks</span></button>
+    <button class="mnav-btn" onclick="mshow('calendar',this)"><span class="icon">📅</span><span class="lbl">Calendar</span></button>
+    <button class="mnav-btn" onclick="mshow('sessions',this)"><span class="icon">🔗</span><span class="lbl">Sessions</span></button>
+    <button class="mnav-btn" onclick="mshow('more',this)"><span class="icon">⋯</span><span class="lbl">More</span></button>
+  </div>
+</nav>
+<button class="fab" onclick="fabAction()">+</button>
+
+<!-- More sheet -->
+<div class="modal-bg" id="moreSheet">
+  <div class="modal" style="max-height:55vh">
+    <div class="modal-handle"></div><h3>More</h3>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px">
+      <button class="btn btn-ghost" onclick="mshowClose('log')">📊 Log</button>
+      <button class="btn btn-ghost" onclick="mshowClose('notes')">🗒️ Notes</button>
+      <button class="btn btn-ghost" onclick="mshowClose('reflect')">🪞 Reflect</button>
+      <button class="btn btn-ghost" onclick="mshowClose('depmap')">🗺️ Dep Map</button>
+      <button class="btn btn-ghost" onclick="mshowClose('export')">📦 Export</button>
+      <button class="btn btn-ghost" onclick="mshowClose('cycles')">🔄 Cycles</button>
+    </div>
+  </div>
+</div>
+
+<!-- Task modal -->
+<div class="modal-bg" id="taskModal">
+  <div class="modal">
+    <div class="modal-handle"></div><h3>📝 New Task</h3>
+    <div class="form-group"><label>Title</label><input id="tTitle" placeholder="What needs to be done?"/></div>
+    <div class="form-group"><label>Description</label><textarea id="tDesc" placeholder="Details…"></textarea></div>
+    <div class="row">
+      <div class="form-group"><label>Priority</label>
+        <select id="tPriority"><option>High</option><option selected>Medium</option><option>Low</option></select>
+      </div>
+      <div class="form-group"><label>Status</label>
+        <select id="tStatus"><option>Not Started</option><option>In Progress</option><option>Done</option></select>
+      </div>
+    </div>
+    <div class="row">
+      <div class="form-group"><label>Category</label><select id="tCategory"><option value="">— None —</option></select></div>
+      <div class="form-group"><label>Due Date</label><input id="tDate" type="date"/></div>
+    </div>
+    <div class="row">
+      <div class="form-group"><label>Week (1–16)</label><input id="tWeek" type="number" min="1" max="16" placeholder="e.g. 3"/></div>
+      <div class="form-group"><label>Progress %</label><input id="tProgress" type="number" min="0" max="100" value="0"/></div>
+    </div>
+    <div class="form-group"><label>Cycle</label><select id="tCycle"></select></div>
+    <div class="form-group"><label>Depends On <span style="font-weight:400;color:var(--muted)">(Ctrl/Cmd for multiple)</span></label>
+      <select id="tDeps" multiple style="min-height:70px"></select>
+    </div>
+    <div class="flex-end">
+      <button class="btn btn-ghost" onclick="closeModal('taskModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveTask()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Log modal -->
+<div class="modal-bg" id="logModal">
+  <div class="modal">
+    <div class="modal-handle"></div><h3>📊 Log Progress</h3>
+    <div class="form-group"><label>Related Task</label><select id="lTask"></select></div>
+    <div class="form-group"><label>Week</label><input id="lWeek" type="number" min="1" max="16"/></div>
+    <div class="form-group"><label>What did you accomplish?</label><textarea id="lEntry" placeholder="Describe your progress…"></textarea></div>
+    <div class="form-group"><label>Update Task Progress %</label><input id="lProgress" type="number" min="0" max="100"/></div>
+    <div class="flex-end">
+      <button class="btn btn-ghost" onclick="closeModal('logModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveLog()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Note modal -->
+<div class="modal-bg" id="noteModal">
+  <div class="modal">
+    <div class="modal-handle"></div><h3>🗒️ Add Note</h3>
+    <div class="form-group"><label>Title</label><input id="nTitle" placeholder="Note title"/></div>
+    <div class="form-group"><label>Related Task (optional)</label><select id="nTask"></select></div>
+    <div class="form-group"><label>Note</label><textarea id="nBody" placeholder="Write your note…" style="min-height:88px"></textarea></div>
+    <div class="flex-end">
+      <button class="btn btn-ghost" onclick="closeModal('noteModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveNote()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Reflect modal -->
+<div class="modal-bg" id="reflectModal">
+  <div class="modal">
+    <div class="modal-handle"></div><h3>🪞 Weekly Reflection</h3>
+    <div class="form-group"><label>Week #</label><input id="rWeek" type="number" min="1" max="16"/></div>
+    <div class="form-group"><label>What went well?</label><textarea id="rWell" placeholder="Wins…"></textarea></div>
+    <div class="form-group"><label>What was challenging?</label><textarea id="rChallenge" placeholder="Blockers…"></textarea></div>
+    <div class="form-group"><label>What will I focus on next?</label><textarea id="rNext" placeholder="Intentions…"></textarea></div>
+    <div class="flex-end">
+      <button class="btn btn-ghost" onclick="closeModal('reflectModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveReflection()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Category manager modal -->
+<div class="modal-bg" id="catModal">
+  <div class="modal">
+    <div class="modal-handle"></div><h3>🏷️ Manage Categories</h3>
+    <div class="form-group"><label>Category Name</label><input id="catName" placeholder="e.g. Research, Planning…"/></div>
+    <div class="form-group"><label>Color</label>
+      <div class="swatch-row" id="swatchRow"></div>
+    </div>
+    <div class="flex-end" style="margin-top:10px">
+      <button class="btn btn-ghost" onclick="closeModal('catModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveCategory()">Add Category</button>
+    </div>
+    <div style="margin-top:16px"><h3 style="margin-bottom:10px">Existing Categories</h3><div id="catList"></div></div>
+  </div>
+</div>
+
+<!-- Session modal -->
+<div class="modal-bg" id="sessionModal">
+  <div class="modal">
+    <div class="modal-handle"></div><h3>🔗 Add Session Link</h3>
+    <div class="form-group"><label>Title</label><input id="slTitle" placeholder="e.g. Defensive Footwork Drill #3"/></div>
+    <div class="form-group"><label>URL</label><input id="slUrl" type="url" placeholder="https://…"/></div>
+    <div class="form-group"><label>Category</label>
+      <select id="slCat">
+        <option value="Warm Up">🔥 Warm Up</option><option value="Technical">🎯 Technical</option>
+        <option value="Games">🏆 Games</option><option value="Drills">⚡ Drills</option>
+      </select>
+    </div>
+    <div class="form-group"><label>Notes (optional)</label><textarea id="slNotes" placeholder="What this covers…" style="min-height:54px"></textarea></div>
+    <div class="flex-end">
+      <button class="btn btn-ghost" onclick="closeModal('sessionModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveSession()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Cycle modal -->
+<div class="modal-bg" id="cycleModal">
+  <div class="modal">
+    <div class="modal-handle"></div><h3>🔄 New 16-Week Cycle</h3>
+    <div class="form-group"><label>Cycle Name</label><input id="cyName" placeholder="e.g. Spring 2026 Cycle"/></div>
+    <div class="form-group"><label>Start Date</label><input id="cyStart" type="date"/></div>
+    <div class="form-group"><label>Goal / Theme</label><textarea id="cyGoal" placeholder="What is this cycle focused on?"></textarea></div>
+    <div class="flex-end">
+      <button class="btn btn-ghost" onclick="closeModal('cycleModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveCycle()">Start Cycle</button>
+    </div>
+  </div>
+</div>
+
+<!-- Task detail modal -->
+<div class="modal-bg" id="taskDetailModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div id="taskDetailContent"></div>
+    <div class="flex-end">
+      <button class="btn btn-ghost" onclick="closeModal('taskDetailModal')">Close</button>
+      <button class="btn btn-primary" onclick="goToTasksSection()">Go to Tasks →</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── State ──────────────────────────────────────────────
+let state={cycles:[],tasks:[],logs:[],notes:[],reflections:[],sessions:[],categories:[],activeCycleId:null};
+let currentSection='dashboard', activeSessionCat='All', colorMode='priority';
+let calView='month', calDate=new Date(), selectedDate=null;
+
+// Palette for category swatches
+const PALETTE=['#6c63ff','#f7b731','#4ecdc4','#ee5a24','#26de81','#a29bfe','#fd79a8','#00b894','#e17055','#74b9ff','#fdcb6e','#55efc4'];
+let selectedSwatch=PALETTE[0];
+
+function load(){
+  try{const s=localStorage.getItem('wpt_v4');if(s)state=JSON.parse(s);}catch(e){}
+  if(!state.sessions)state.sessions=[];
+  if(!state.categories)state.categories=[];
+  if(!state.cycles.length)initDefaultCycle();
+  colorMode=localStorage.getItem('wpt_colormode')||'priority';
+  document.getElementById('colorModeSelect').value=colorMode;
+}
+function save(){localStorage.setItem('wpt_v4',JSON.stringify(state));}
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
+function initDefaultCycle(){
+  const today=new Date().toISOString().slice(0,10);
+  const c={id:uid(),name:'My First 16-Week Cycle',start:today,goal:'Get started with tracking my work progress.',created:Date.now()};
+  state.cycles.push(c);state.activeCycleId=c.id;save();
+}
+
+// ── Color system ───────────────────────────────────────
+function setColorMode(m){colorMode=m;localStorage.setItem('wpt_colormode',m);render();if(currentSection==='calendar')renderCalendar();if(currentSection==='depmap')drawMap();}
+
+function taskColor(t){
+  if(colorMode==='priority'){
+    const map={High:'var(--c-high)',Medium:'var(--c-medium)',Low:'var(--c-low)'};
+    return map[t.priority]||'var(--muted)';
+  }
+  if(colorMode==='status'){
+    const map={'Not Started':'var(--c-notstarted)','In Progress':'var(--c-inprogress)',Done:'var(--c-done)'};
+    return map[t.status]||'var(--muted)';
+  }
+  if(colorMode==='category'){
+    const cat=state.categories.find(c=>c.id===t.categoryId);
+    return cat?cat.color:'var(--muted)';
+  }
+  return'var(--muted)';
+}
+
+function taskColorBg(t){
+  const c=taskColor(t);
+  // build transparent version — map var to hex then add alpha
+  return c.replace('var(--c-high)','#ee5a2420').replace('var(--c-medium)','#f7b73120')
+    .replace('var(--c-low)','#26de8120').replace('var(--c-notstarted)','#7986cb20')
+    .replace('var(--c-inprogress)','#4ecdc420').replace('var(--c-done)','#26de8120')
+    .replace('var(--muted)','#7986cb20');
+}
+
+function taskCardClass(t){
+  if(colorMode==='priority')return'tc-'+t.priority.toLowerCase().replace(' ','');
+  if(colorMode==='status'){const m={'Not Started':'tc-notstarted','In Progress':'tc-inprogress','Done':'tc-done'};return m[t.status]||'tc-notstarted';}
+  if(colorMode==='category'){
+    const cat=state.categories.find(c=>c.id===t.categoryId);
+    if(cat){const i=PALETTE.indexOf(cat.color);return i>=0?`tc-cat${i%6}`:'tc-cat0';}
+    return'tc-notstarted';
+  }
+  return'tc-notstarted';
+}
+
+function progBarColor(t){
+  const c=taskColor(t);
+  const hex=c.replace('var(--c-high)','#ee5a24').replace('var(--c-medium)','#f7b731')
+    .replace('var(--c-low)','#26de81').replace('var(--c-notstarted)','#7986cb')
+    .replace('var(--c-inprogress)','#4ecdc4').replace('var(--c-done)','#26de81').replace('var(--muted)','#7986cb');
+  return`linear-gradient(90deg,${hex},${hex}88)`;
+}
+
+function resolveColor(c){
+  return c.replace('var(--c-high)','#ee5a24').replace('var(--c-medium)','#f7b731')
+    .replace('var(--c-low)','#26de81').replace('var(--c-notstarted)','#7986cb')
+    .replace('var(--c-inprogress)','#4ecdc4').replace('var(--c-done)','#26de81').replace('var(--muted)','#7986cb');
+}
+
+// ── Helpers ────────────────────────────────────────────
+function activeCycle(){return state.cycles.find(c=>c.id===state.activeCycleId)||state.cycles[0];}
+function cycleWeekInfo(c){
+  if(!c)return{week:1,pct:0};
+  const diff=Math.floor((new Date()-new Date(c.start))/(7*864e5));
+  const week=Math.min(Math.max(diff+1,1),16);
+  return{week,pct:Math.round((week/16)*100)};
+}
+function fmtDate(d){return new Date(d).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});}
+function fmtDateShort(d){return new Date(d).toLocaleDateString('en-US',{month:'short',day:'numeric'});}
+function cycleEndDate(c){const d=new Date(c.start);d.setDate(d.getDate()+16*7);return d;}
+function priorityClass(p){return p==='High'?'high':p==='Medium'?'medium':'low';}
+function statusClass(s){return s==='Done'?'done':s==='In Progress'?'inprogress':'notstarted';}
+function catIcon(c){return{['Warm Up']:'🔥',Technical:'🎯',Games:'🏆',Drills:'⚡'}[c]||'🔗';}
+function isoDate(d){return d.toISOString().slice(0,10);}
+function sameDay(a,b){return isoDate(a)===isoDate(b);}
+function tasksByDate(ds){return state.tasks.filter(t=>t.dueDate===ds);}
+function getCatName(catId){const c=state.categories.find(x=>x.id===catId);return c?c.name:'';}
+function getCatColor(catId){const c=state.categories.find(x=>x.id===catId);return c?c.color:'var(--muted)';}
+
+// ── Nav ────────────────────────────────────────────────
+function show(id,btn){
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('#desktopNav button').forEach(b=>b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  if(btn)btn.classList.add('active');
+  currentSection=id;render();
+  if(id==='depmap')setTimeout(drawMap,80);
+  if(id==='calendar')renderCalendar();
+}
+function mshow(id,btn){
+  if(id==='more'){openModal('moreSheet');return;}
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.mnav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  if(btn)btn.classList.add('active');
+  currentSection=id;render();
+  if(id==='depmap')setTimeout(drawMap,80);
+  if(id==='calendar')renderCalendar();
+}
+function mshowClose(id){
+  closeModal('moreSheet');
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  currentSection=id;render();
+  if(id==='calendar')renderCalendar();
+}
+function fabAction(){
+  const map={dashboard:'taskModal',tasks:'taskModal',calendar:'taskModal',log:'logModal',notes:'noteModal',reflect:'reflectModal',sessions:'sessionModal',cycles:'cycleModal'};
+  openModal(map[currentSection]||'taskModal');
+}
+function openModal(id){populateSelects();if(id==='catModal')renderCatModal();document.getElementById(id).classList.add('open');}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+document.querySelectorAll('.modal-bg').forEach(m=>{m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open');});});
+function goToTasksSection(){closeModal('taskDetailModal');show('tasks',document.querySelector('#desktopNav button:nth-child(2)'));document.querySelectorAll('.mnav-btn').forEach(b=>b.classList.remove('active'));}
+
+// ── Selects ────────────────────────────────────────────
+function populateSelects(){
+  const cyOpts=state.cycles.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+  const el=document.getElementById('tCycle');if(el)el.innerHTML=cyOpts||'<option>No cycles</option>';
+  const taskOpts=state.tasks.map(t=>`<option value="${t.id}">${t.title}</option>`).join('');
+  const lTask=document.getElementById('lTask');if(lTask)lTask.innerHTML=taskOpts||'<option>No tasks</option>';
+  const nTask=document.getElementById('nTask');if(nTask)nTask.innerHTML='<option value="">— None —</option>'+taskOpts;
+  const depEl=document.getElementById('tDeps');
+  if(depEl)depEl.innerHTML=state.tasks.length?state.tasks.map(t=>`<option value="${t.id}">${t.title}</option>`).join(''):'<option value="">No tasks yet</option>';
+  const catOpts='<option value="">— None —</option>'+state.categories.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+  const tCat=document.getElementById('tCategory');if(tCat)tCat.innerHTML=catOpts;
+  const fCat=document.getElementById('filterCategory');
+  if(fCat)fCat.innerHTML='<option value="">All Categories</option>'+state.categories.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+  const ac=activeCycle();
+  if(ac){const{week}=cycleWeekInfo(ac);['lWeek','rWeek'].forEach(id=>{const e=document.getElementById(id);if(e&&!e.value)e.value=week;});}
+}
+
+// ── Categories ─────────────────────────────────────────
+function renderCatModal(){
+  const row=document.getElementById('swatchRow');
+  row.innerHTML=PALETTE.map(c=>`<div class="swatch${c===selectedSwatch?' active':''}" style="background:${c}" onclick="selectSwatch('${c}')"></div>`).join('');
+  const catListEl=document.getElementById('catList');
+  catListEl.innerHTML=state.categories.length?state.categories.map(c=>`
+    <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)">
+      <div style="width:12px;height:12px;border-radius:50%;background:${c.color};flex-shrink:0"></div>
+      <span style="flex:1;font-size:.85rem">${c.name}</span>
+      <button class="btn btn-danger btn-sm" onclick="deleteCategory('${c.id}')">✕</button>
+    </div>`).join(''):`<div style="font-size:.8rem;color:var(--muted)">No categories yet.</div>`;
+}
+function selectSwatch(c){selectedSwatch=c;renderCatModal();}
+function saveCategory(){
+  const name=document.getElementById('catName').value.trim();if(!name)return alert('Enter a category name.');
+  if(state.categories.find(c=>c.name.toLowerCase()===name.toLowerCase()))return alert('Category already exists.');
+  state.categories.push({id:uid(),name,color:selectedSwatch});save();
+  document.getElementById('catName').value='';populateSelects();renderCatModal();render();
+}
+function deleteCategory(id){
+  state.categories=state.categories.filter(c=>c.id!==id);
+  state.tasks.forEach(t=>{if(t.categoryId===id)t.categoryId='';});
+  save();populateSelects();renderCatModal();render();
+}
+
+// ── Save ───────────────────────────────────────────────
+function saveTask(){
+  const title=document.getElementById('tTitle').value.trim();if(!title)return alert('Enter a task title.');
+  const depEl=document.getElementById('tDeps');
+  const deps=[...depEl.selectedOptions].map(o=>o.value).filter(Boolean);
+  state.tasks.push({
+    id:uid(),title,desc:document.getElementById('tDesc').value,
+    priority:document.getElementById('tPriority').value,
+    status:document.getElementById('tStatus').value,
+    categoryId:document.getElementById('tCategory').value,
+    dueDate:document.getElementById('tDate').value,
+    week:+document.getElementById('tWeek').value||1,
+    progress:+document.getElementById('tProgress').value||0,
+    cycleId:document.getElementById('tCycle').value,deps,created:Date.now()
+  });
+  save();['tTitle','tDesc','tWeek','tProgress','tDate'].forEach(id=>document.getElementById(id).value='');depEl.selectedIndex=-1;
+  closeModal('taskModal');render();if(currentSection==='calendar')renderCalendar();
+}
+function saveLog(){
+  const entry=document.getElementById('lEntry').value.trim();if(!entry)return alert('Write something.');
+  const taskId=document.getElementById('lTask').value,prog=+document.getElementById('lProgress').value;
+  state.logs.push({id:uid(),taskId,week:+document.getElementById('lWeek').value||1,entry,progress:prog,created:Date.now()});
+  if(taskId&&prog){const t=state.tasks.find(t=>t.id===taskId);if(t){t.progress=Math.min(100,prog);if(prog>=100)t.status='Done';}}
+  save();['lEntry','lProgress'].forEach(id=>document.getElementById(id).value='');closeModal('logModal');render();
+}
+function saveNote(){
+  const title=document.getElementById('nTitle').value.trim(),body=document.getElementById('nBody').value.trim();
+  if(!title||!body)return alert('Fill in title and note.');
+  state.notes.push({id:uid(),title,taskId:document.getElementById('nTask').value,body,created:Date.now()});
+  save();['nTitle','nBody'].forEach(id=>document.getElementById(id).value='');closeModal('noteModal');render();
+}
+function saveReflection(){
+  const well=document.getElementById('rWell').value.trim();if(!well)return alert('Fill in what went well.');
+  state.reflections.push({id:uid(),week:+document.getElementById('rWeek').value||1,well,challenge:document.getElementById('rChallenge').value,next:document.getElementById('rNext').value,created:Date.now()});
+  save();['rWeek','rWell','rChallenge','rNext'].forEach(id=>document.getElementById(id).value='');closeModal('reflectModal');render();
+}
+function saveSession(){
+  const title=document.getElementById('slTitle').value.trim(),url=document.getElementById('slUrl').value.trim();
+  if(!title||!url)return alert('Enter title and URL.');
+  state.sessions.push({id:uid(),title,url,cat:document.getElementById('slCat').value,notes:document.getElementById('slNotes').value,created:Date.now()});
+  save();['slTitle','slUrl','slNotes'].forEach(id=>document.getElementById(id).value='');closeModal('sessionModal');renderSessions();
+}
+function saveCycle(){
+  const name=document.getElementById('cyName').value.trim(),start=document.getElementById('cyStart').value;
+  if(!name||!start)return alert('Enter name and start date.');
+  const c={id:uid(),name,start,goal:document.getElementById('cyGoal').value,created:Date.now()};
+  state.cycles.push(c);state.activeCycleId=c.id;save();
+  ['cyName','cyStart','cyGoal'].forEach(id=>document.getElementById(id).value='');closeModal('cycleModal');render();
+}
+function deleteItem(arr,id){const i=state[arr].findIndex(x=>x.id===id);if(i>-1){state[arr].splice(i,1);save();render();if(currentSection==='calendar')renderCalendar();}}
+function updateStatus(id,val){const t=state.tasks.find(t=>t.id===id);if(t){t.status=val;if(val==='Done')t.progress=100;save();render();if(currentSection==='calendar')renderCalendar();}}
+function setActiveCycle(id){state.activeCycleId=id;save();render();}
+function filterSessions(cat,btn){activeSessionCat=cat;document.querySelectorAll('.cat-tab').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderSessions();}
+
+// ── Render ─────────────────────────────────────────────
+function render(){renderCycleBar();renderStats();renderDashboard();renderTasks();renderLogs();renderNotes();renderReflections();renderSessions();renderCycles();}
+
+function renderCycleBar(){
+  const ac=activeCycle();
+  if(!ac){document.getElementById('cycleBar').innerHTML='';document.getElementById('cycleLabel').textContent='No cycle';return;}
+  const{week,pct}=cycleWeekInfo(ac);
+  document.getElementById('cycleLabel').textContent=`${ac.name} · Wk ${week}/16`;
+  let wk='';for(let i=1;i<=16;i++){const c=i<week?'wk done-wk':i===week?'wk current-wk':'wk';wk+=`<div class="${c}" title="Week ${i}"></div>`;}
+  document.getElementById('cycleBar').innerHTML=`<div class="cycle-header">
+    <div class="cycle-title">${ac.name}</div>
+    <div style="font-size:.72rem;color:var(--muted)">${ac.goal||''}</div>
+    <div class="week-grid">${wk}</div>
+    <div class="cycle-meta"><span>🟣 Past</span><span>🟢 Current</span><span>Started ${fmtDate(ac.start)}</span><span>Ends ${fmtDate(cycleEndDate(ac))}</span><span>${pct}% through</span></div>
+  </div>`;
+}
+
+function renderStats(){
+  const ac=activeCycle();
+  const ct=state.tasks.filter(t=>!ac||t.cycleId===ac?.id);
+  const total=ct.length,done=ct.filter(t=>t.status==='Done').length,inp=ct.filter(t=>t.status==='In Progress').length;
+  const blocked=ct.filter(t=>(t.deps||[]).some(id=>{const d=state.tasks.find(x=>x.id===id);return d&&d.status!=='Done';})).length;
+  document.getElementById('statsGrid').innerHTML=`
+    <div class="stat" style="border-left-color:var(--accent)"><div class="stat-num" style="color:var(--accent)">${total}</div><div class="stat-label">Tasks</div></div>
+    <div class="stat" style="border-left-color:var(--c-done)"><div class="stat-num" style="color:var(--c-done)">${done}</div><div class="stat-label">Done</div></div>
+    <div class="stat" style="border-left-color:var(--c-inprogress)"><div class="stat-num" style="color:var(--c-inprogress)">${inp}</div><div class="stat-label">In Progress</div></div>
+    <div class="stat" style="border-left-color:var(--c-high)"><div class="stat-num" style="color:var(--c-high)">${blocked}</div><div class="stat-label">Blocked</div></div>`;
+}
+
+function renderDashboard(){
+  const ac=activeCycle();const{week:cw}=cycleWeekInfo(ac);
+  const pending=state.tasks.filter(t=>t.status!=='Done'&&(!ac||t.cycleId===ac?.id));
+  const byWeek={};pending.forEach(t=>{const w=t.week||1;if(!byWeek[w])byWeek[w]=[];byWeek[w].push(t);});
+  const weeks=Object.keys(byWeek).map(Number).sort((a,b)=>a-b).slice(0,4);
+  let upHtml='';
+  if(!weeks.length){upHtml=`<div class="empty" style="padding:14px">All caught up! 🎉</div>`;}
+  else weeks.forEach(w=>{
+    const isCurrent=w===cw,isPast=w<cw;
+    const badge=isCurrent?`<span style="background:var(--accent)">Current</span>`:isPast?`<span style="background:var(--c-high)">Past Due</span>`:'';
+    upHtml+=`<div class="week-section"><div class="week-label">Week ${w} ${badge}</div>
+      ${byWeek[w].map(t=>{
+        const col=resolveColor(taskColor(t));
+        const cat=getCatName(t.categoryId);
+        return`<div class="mini-task" style="background:${col}18;border-left-color:${col}">
+          <div class="mini-task-name">${t.title}</div>
+          ${cat?`<span style="font-size:.6rem;padding:2px 6px;border-radius:8px;font-weight:700;background:${col}25;color:${col}">${cat}</span>`:''}
+          ${t.dueDate?`<span style="font-size:.62rem;color:var(--muted)">${fmtDateShort(t.dueDate+'T12:00:00')}</span>`:''}
+          <span style="font-size:.66rem;color:var(--muted);white-space:nowrap">${t.progress}%</span>
+        </div>`;
+      }).join('')}
+    </div>`;
+  });
+  document.getElementById('upcomingList').innerHTML=upHtml;
+
+  const inp=state.tasks.filter(t=>t.status==='In Progress'&&(!ac||t.cycleId===ac?.id)).slice(0,5);
+  document.getElementById('dashInProgress').innerHTML=inp.length
+    ? inp.map(t=>{const col=resolveColor(taskColor(t));return`<div class="mini-task" style="background:${col}18;border-left-color:${col};margin-bottom:4px">
+        <div class="mini-task-name">${t.title}</div>
+        <span style="font-size:.66rem;color:${col};font-weight:700">${t.progress}%</span>
+      </div>`;}).join('')
+    : `<div style="font-size:.78rem;color:var(--muted);padding:6px 0">No tasks in progress.</div>`;
+
+  const blocked=state.tasks.filter(t=>t.status!=='Done'&&(t.deps||[]).some(id=>{const d=state.tasks.find(x=>x.id===id);return d&&d.status!=='Done';}));
+  const pastDue=state.tasks.filter(t=>t.status!=='Done'&&t.week<cw&&(!ac||t.cycleId===ac?.id));
+  let alertHtml='';
+  blocked.slice(0,3).forEach(t=>{
+    const bnames=(t.deps||[]).map(id=>state.tasks.find(x=>x.id===id)).filter(d=>d&&d.status!=='Done').map(d=>d.title).join(', ');
+    alertHtml+=`<div class="alert-item"><div style="font-size:.95rem">🚫</div><div><div style="font-size:.8rem;font-weight:600;color:var(--c-high)">${t.title}</div><div style="font-size:.68rem;color:var(--muted)">Blocked by: ${bnames}</div></div></div>`;
+  });
+  pastDue.slice(0,3).forEach(t=>{
+    alertHtml+=`<div class="alert-item"><div style="font-size:.95rem">⏰</div><div><div style="font-size:.8rem;font-weight:600;color:var(--c-medium)">${t.title}</div><div style="font-size:.68rem;color:var(--muted)">Week ${t.week} — now Week ${cw}</div></div></div>`;
+  });
+  document.getElementById('dashAlerts').innerHTML=alertHtml||`<div style="font-size:.78rem;color:var(--muted);padding:5px 0">No issues ✅</div>`;
+}
+
+function taskCard(t){
+  const deps=t.deps||[];
+  const blockers=deps.map(id=>state.tasks.find(x=>x.id===id)).filter(d=>d&&d.status!=='Done');
+  const blocking=state.tasks.filter(x=>(x.deps||[]).includes(t.id)&&x.status!=='Done');
+  const isBlocked=blockers.length>0;
+  const col=resolveColor(taskColor(t));
+  const cat=state.categories.find(c=>c.id===t.categoryId);
+  let depHtml='';
+  if(blockers.length)depHtml+=`<div class="dep-box dep-blocked">🚫 <strong>Blocked by:</strong> ${blockers.map(d=>`<span style="color:var(--c-high)">${d.title}</span>`).join(', ')}</div>`;
+  if(blocking.length)depHtml+=`<div class="dep-box dep-blocking">🔗 <strong>Blocking:</strong> ${blocking.map(d=>d.title).join(', ')}</div>`;
+  if(deps.length&&!blockers.length)depHtml+=`<div class="dep-box dep-clear">✅ Dependencies cleared</div>`;
+  return`<div class="task-card ${taskCardClass(t)}" style="${isBlocked?'border-left-color:var(--c-high)!important':''}">
+    <div class="card-header">
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:600;margin-bottom:2px">${t.title}</div>
+        <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:3px;align-items:center">
+          ${t.dueDate?`<span style="font-size:.68rem;color:var(--muted)">📅 ${fmtDate(t.dueDate+'T12:00:00')}</span>`:''}
+          ${cat?`<span class="cat-pill" style="background:${cat.color}22;color:${cat.color}">${cat.name}</span>`:''}
+        </div>
+        ${t.desc?`<div style="font-size:.76rem;color:var(--muted)">${t.desc}</div>`:''}
+      </div>
+      <div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end;flex-shrink:0">
+        <span class="tag ${priorityClass(t.priority)}">${t.priority}</span>
+        <span class="tag ${statusClass(t.status)}">${t.status}</span>
+      </div>
+    </div>
+    <div class="prog-wrap"><div class="prog-bar" style="width:${t.progress}%;background:${progBarColor(t)}"></div></div>
+    <div class="prog-label"><span>Week ${t.week}</span><span style="color:${col};font-weight:700">${t.progress}%</span></div>
+    ${depHtml}
+    <div style="display:flex;gap:6px;margin-top:9px;flex-wrap:wrap;align-items:center">
+      <select class="btn btn-ghost btn-sm" onchange="updateStatus('${t.id}',this.value)">
+        <option ${t.status==='Not Started'?'selected':''}>Not Started</option>
+        <option ${t.status==='In Progress'?'selected':''}>In Progress</option>
+        <option ${t.status==='Done'?'selected':''}>Done</option>
+      </select>
+      <button class="btn btn-danger btn-sm" onclick="deleteItem('tasks','${t.id}')">Delete</button>
+    </div>
+  </div>`;
+}
+
+function renderTasks(){
+  // Category legend
+  let legendHtml='';
+  if(state.categories.length){
+    legendHtml=`<div class="cat-legend" id="catLegend">
+      ${state.categories.map(c=>`<div class="cat-legend-item"><div class="cat-legend-dot" style="background:${c.color}"></div><span>${c.name}</span></div>`).join('')}
+      <div class="cat-legend-item" style="border-style:dashed" onclick="openModal('catModal')">+ Manage</div>
+    </div>`;
+  } else {
+    legendHtml=`<div style="margin-bottom:10px"><button class="btn btn-ghost btn-sm" onclick="openModal('catModal')">🏷️ + Add Categories</button></div>`;
+  }
+
+  const fs=document.getElementById('filterStatus')?.value,fp=document.getElementById('filterPriority')?.value;
+  const fc=document.getElementById('filterCategory')?.value;
+  let tasks=state.tasks;
+  if(fs)tasks=tasks.filter(t=>t.status===fs);
+  if(fp)tasks=tasks.filter(t=>t.priority===fp);
+  if(fc)tasks=tasks.filter(t=>t.categoryId===fc);
+  document.getElementById('taskList').innerHTML=legendHtml+(tasks.length?tasks.map(t=>taskCard(t)).join(''):`<div class="empty">No tasks found.</div>`);
+}
+
+function renderLogs(){
+  const sorted=[...state.logs].sort((a,b)=>b.created-a.created);
+  document.getElementById('logList').innerHTML=sorted.length?sorted.map(l=>{
+    const t=state.tasks.find(x=>x.id===l.taskId);
+    const col=t?resolveColor(taskColor(t)):'var(--muted)';
+    return`<div class="log-item" style="border-left-color:${col}">
+      <div class="log-dot" style="background:${col}"></div>
+      <div class="log-content"><div class="meta">Week ${l.week} · ${fmtDate(l.created)}${t?' · <span style="color:'+col+'">'+t.title+'</span>':''}</div>
+      <div>${l.entry}</div>${l.progress?`<div style="font-size:.7rem;color:${col};margin-top:2px;font-weight:600">→ ${l.progress}%</div>`:''}</div>
+    </div>`;
+  }).join(''):`<div class="empty">No log entries yet.</div>`;
+}
+
+function renderNotes(){
+  document.getElementById('noteList').innerHTML=state.notes.length?[...state.notes].reverse().map(n=>{
+    const t=state.tasks.find(x=>x.id===n.taskId);
+    const col=t?resolveColor(taskColor(t)):'var(--accent)';
+    return`<div class="note-item" style="border-left-color:${col}">
+      <div class="meta">${fmtDate(n.created)}${t?` · <span style="color:${col}">${t.title}</span>`:''}</div>
+      <div style="font-weight:600;margin-bottom:3px">${n.title}</div>
+      <div style="font-size:.82rem">${n.body}</div>
+      <button class="btn btn-danger btn-sm" style="margin-top:8px" onclick="deleteItem('notes','${n.id}')">Delete</button>
+    </div>`;
+  }).join(''):`<div class="empty">No notes yet.</div>`;
+}
+
+function renderReflections(){
+  const WEEK_COLS=['#6c63ff','#f7b731','#4ecdc4','#ee5a24','#26de81','#a29bfe','#fd79a8','#74b9ff'];
+  document.getElementById('reflectList').innerHTML=state.reflections.length?[...state.reflections].reverse().map((r,i)=>{
+    const col=WEEK_COLS[i%WEEK_COLS.length];
+    return`<div class="reflect-card" style="border-top-color:${col}">
+      <div style="font-weight:700;margin-bottom:9px;color:${col}">Week ${r.week} Reflection <span style="font-size:.68rem;color:var(--muted);font-weight:400">· ${fmtDate(r.created)}</span></div>
+      <div style="margin-bottom:7px"><div style="color:var(--c-done);font-size:.68rem;font-weight:700;margin-bottom:2px">✅ WENT WELL</div><div style="font-size:.82rem">${r.well}</div></div>
+      ${r.challenge?`<div style="margin-bottom:7px"><div style="color:var(--c-medium);font-size:.68rem;font-weight:700;margin-bottom:2px">⚠️ CHALLENGES</div><div style="font-size:.82rem">${r.challenge}</div></div>`:''}
+      ${r.next?`<div><div style="color:var(--accent);font-size:.68rem;font-weight:700;margin-bottom:2px">🎯 NEXT WEEK</div><div style="font-size:.82rem">${r.next}</div></div>`:''}
+      <button class="btn btn-danger btn-sm" style="margin-top:10px" onclick="deleteItem('reflections','${r.id}')">Delete</button>
+    </div>`;
+  }).join(''):`<div class="empty">No reflections yet.</div>`;
+}
+
+function renderSessions(){
+  const list=activeSessionCat==='All'?state.sessions:state.sessions.filter(s=>s.cat===activeSessionCat);
+  const sorted=[...list].sort((a,b)=>b.created-a.created);
+  document.getElementById('sessionList').innerHTML=sorted.length?sorted.map(s=>`
+    <div class="link-card" data-cat="${s.cat}">
+      <div class="link-thumb" data-cat="${s.cat}">${catIcon(s.cat)}</div>
+      <div class="link-body">
+        <div class="link-title">${s.title}</div>
+        <div class="link-url">${s.url}</div>
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+          <span class="link-cat-badge" data-cat="${s.cat}">${catIcon(s.cat)} ${s.cat}</span>
+          ${s.notes?`<span style="font-size:.68rem;color:var(--muted)">${s.notes}</span>`:''}
+        </div>
+      </div>
+      <div style="display:flex;gap:5px;align-items:center;flex-shrink:0">
+        <a href="${s.url}" target="_blank" rel="noopener" class="btn btn-primary btn-sm btn-icon">▶</a>
+        <button class="btn btn-danger btn-sm btn-icon" onclick="deleteItem('sessions','${s.id}')">✕</button>
+      </div>
+    </div>`).join(''):`<div class="empty">${activeSessionCat==='All'?'No session links yet.':'No '+activeSessionCat+' links yet.'}</div>`;
+}
+
+function renderCycles(){
+  document.getElementById('cycleList').innerHTML=state.cycles.length?[...state.cycles].reverse().map(c=>{
+    const{week,pct}=cycleWeekInfo(c),isActive=c.id===state.activeCycleId;
+    return`<div style="background:var(--surface);border:1px solid ${isActive?'var(--accent)':'var(--border)'};border-radius:var(--radius);padding:14px;margin-bottom:11px;border-top:3px solid ${isActive?'var(--accent)':'var(--border)'}">
+      <div style="font-weight:600">${c.name} ${isActive?'<span style="font-size:.64rem;color:var(--accent)">● ACTIVE</span>':''}</div>
+      <div style="font-size:.73rem;color:var(--muted);margin:3px 0">${fmtDate(c.start)} → ${fmtDate(cycleEndDate(c))}</div>
+      ${c.goal?`<div style="font-size:.78rem;margin-bottom:6px">${c.goal}</div>`:''}
+      <div class="prog-wrap"><div class="prog-bar" style="width:${pct}%;background:linear-gradient(90deg,var(--accent),var(--accent2))"></div></div>
+      <div class="prog-label"><span>Week ${week} of 16</span><span>${pct}%</span></div>
+      ${!isActive?`<button class="btn btn-ghost btn-sm" style="margin-top:8px" onclick="setActiveCycle('${c.id}')">Set Active</button>`:''}
+    </div>`;
+  }).join(''):`<div class="empty">No cycles yet.</div>`;
+}
+
+// ── Calendar ───────────────────────────────────────────
+function setCalView(v){calView=v;document.getElementById('btnMonth').classList.toggle('active',v==='month');document.getElementById('btnWeek').classList.toggle('active',v==='week');renderCalendar();}
+function calMove(dir){if(calView==='month')calDate.setMonth(calDate.getMonth()+dir);else calDate.setDate(calDate.getDate()+dir*7);renderCalendar();}
+
+function renderCalendar(){if(calView==='month')renderMonthView();else renderWeekView();renderDayPanel();}
+
+function evtStyle(t){
+  const col=resolveColor(taskColor(t));
+  return`background:${col}18;color:${col};border-left-color:${col}`;
+}
+
+function renderMonthView(){
+  const y=calDate.getFullYear(),m=calDate.getMonth();
+  const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
+  document.getElementById('calTitle').textContent=`${MONTHS[m]} ${y}`;
+  const firstDay=new Date(y,m,1).getDay(),daysInMonth=new Date(y,m+1,0).getDate(),daysInPrev=new Date(y,m,0).getDate();
+  const today=new Date();
+  let html=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d=>`<div class="cal-day-name">${d}</div>`).join('');
+  for(let i=firstDay-1;i>=0;i--)html+=`<div class="cal-day other-month"><div class="cal-day-num">${daysInPrev-i}</div></div>`;
+  for(let d=1;d<=daysInMonth;d++){
+    const date=new Date(y,m,d),ds=isoDate(date);
+    const isToday=sameDay(date,today),isSel=selectedDate&&ds===selectedDate;
+    const tasks=tasksByDate(ds);
+    let evts=tasks.slice(0,3).map(t=>`<div class="cal-evt" style="${evtStyle(t)}" onclick="selectDay('${ds}');event.stopPropagation()">${t.title}</div>`).join('');
+    if(tasks.length>3)evts+=`<div style="font-size:.54rem;color:var(--muted)">+${tasks.length-3} more</div>`;
+    html+=`<div class="cal-day${isToday?' today':''}${isSel?' selected':''}" onclick="selectDay('${ds}')"><div class="cal-day-num">${d}</div>${evts}</div>`;
+  }
+  const rem=(7-(firstDay+daysInMonth)%7)%7;
+  for(let d=1;d<=rem;d++)html+=`<div class="cal-day other-month"><div class="cal-day-num">${d}</div></div>`;
+  document.getElementById('calGrid').innerHTML=`<div class="cal-month-grid">${html}</div>`;
+}
+
+function renderWeekView(){
+  const d=new Date(calDate);d.setDate(d.getDate()-d.getDay());
+  const today=new Date(),DAYS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'],MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const wEnd=new Date(d);wEnd.setDate(wEnd.getDate()+6);
+  document.getElementById('calTitle').textContent=`${MONTHS[d.getMonth()]} ${d.getDate()} – ${MONTHS[wEnd.getMonth()]} ${wEnd.getDate()}, ${wEnd.getFullYear()}`;
+  let html='';
+  for(let i=0;i<7;i++){
+    const day=new Date(d);day.setDate(d.getDate()+i);
+    const ds=isoDate(day),isToday=sameDay(day,today),isSel=selectedDate&&ds===selectedDate;
+    const tasks=tasksByDate(ds);
+    let evts=tasks.map(t=>`<div class="cal-week-evt" style="${evtStyle(t)}" onclick="selectDay('${ds}');event.stopPropagation()">${t.title}</div>`).join('');
+    html+=`<div class="cal-week-day${isToday?' today':''}${isSel?' selected':''}" onclick="selectDay('${ds}')">
+      <div class="cal-week-day-name">${DAYS[i]}</div>
+      <div class="cal-week-day-num" style="${isToday?'color:var(--accent2)':''}">${day.getDate()}</div>${evts}
+    </div>`;
+  }
+  document.getElementById('calGrid').innerHTML=`<div class="cal-week-grid">${html}</div>`;
+}
+
+function selectDay(ds){selectedDate=ds;renderCalendar();}
+
+function renderDayPanel(){
+  const panel=document.getElementById('calDayPanel');
+  if(!selectedDate){panel.innerHTML='';return;}
+  const tasks=tasksByDate(selectedDate);
+  const d=new Date(selectedDate+'T12:00:00');
+  const label=d.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+  const noDueTasks=state.tasks.filter(t=>!t.dueDate).length;
+  let content=`<div class="cal-day-panel">
+    <div class="cal-day-panel-header">
+      <div class="cal-day-panel-title">📅 ${label}</div>
+      <div style="display:flex;gap:6px">
+        <button class="btn btn-primary btn-sm" onclick="openAddTaskForDate('${selectedDate}')">+ Task</button>
+        <button class="btn btn-ghost btn-sm" onclick="goToTasksSection()">Tasks →</button>
+      </div>
+    </div>`;
+  if(tasks.length){
+    tasks.forEach(t=>{
+      const col=resolveColor(taskColor(t));
+      const isBlocked=(t.deps||[]).some(id=>{const d=state.tasks.find(x=>x.id===id);return d&&d.status!=='Done';});
+      content+=`<div class="cal-task-item" style="background:${col}15;border-left-color:${col}" onclick="showTaskDetail('${t.id}')">
+        <div style="font-size:1rem">${t.status==='Done'?'✅':isBlocked?'🚫':'📌'}</div>
+        <div class="cal-task-info">
+          <div class="cal-task-title">${t.title}</div>
+          <div class="cal-task-meta" style="color:${col}">Week ${t.week} · ${t.priority} · ${t.progress}%${isBlocked?' · Blocked':''}</div>
+        </div>
+        <span class="tag ${priorityClass(t.priority)}">${t.priority}</span>
+      </div>`;
+    });
+  } else {
+    content+=`<div style="font-size:.82rem;color:var(--muted);padding:9px 0">No tasks due on this date.</div>`;
+  }
+  if(noDueTasks>0){
+    content+=`<div style="font-size:.7rem;color:var(--muted);margin-top:8px;padding:8px;background:var(--surface2);border-radius:6px">
+      💡 ${noDueTasks} task${noDueTasks>1?'s have':' has'} no due date. <a href="#" onclick="goToTasksSection();return false" style="color:var(--accent)">Assign in Tasks →</a></div>`;
+  }
+  content+='</div>';
+  panel.innerHTML=content;
+}
+
+function openAddTaskForDate(ds){openModal('taskModal');setTimeout(()=>{const el=document.getElementById('tDate');if(el)el.value=ds;},50);}
+function showTaskDetail(id){
+  const t=state.tasks.find(x=>x.id===id);if(!t)return;
+  const col=resolveColor(taskColor(t));
+  const cat=state.categories.find(c=>c.id===t.categoryId);
+  const deps=t.deps||[];
+  const blockers=deps.map(id=>state.tasks.find(x=>x.id===id)).filter(d=>d&&d.status!=='Done');
+  const blocking=state.tasks.filter(x=>(x.deps||[]).includes(t.id)&&x.status!=='Done');
+  let depHtml='';
+  if(blockers.length)depHtml+=`<div class="dep-box dep-blocked" style="margin-bottom:8px">🚫 <strong>Blocked by:</strong> ${blockers.map(d=>`<span style="color:var(--c-high)">${d.title}</span>`).join(', ')}</div>`;
+  if(blocking.length)depHtml+=`<div class="dep-box dep-blocking" style="margin-bottom:8px">🔗 <strong>Blocking:</strong> ${blocking.map(d=>d.title).join(', ')}</div>`;
+  document.getElementById('taskDetailContent').innerHTML=`
+    <div style="border-left:4px solid ${col};padding-left:10px;margin-bottom:13px">
+      <h3>${t.title}</h3>
+      ${cat?`<span class="cat-pill" style="background:${cat.color}22;color:${cat.color};margin-top:5px;display:inline-flex">${cat.name}</span>`:''}
+    </div>
+    <div style="display:flex;gap:5px;margin-bottom:10px;flex-wrap:wrap">
+      <span class="tag ${priorityClass(t.priority)}">${t.priority}</span>
+      <span class="tag ${statusClass(t.status)}">${t.status}</span>
+      ${t.dueDate?`<span class="tag" style="background:var(--surface2);color:var(--muted)">📅 ${fmtDate(t.dueDate+'T12:00:00')}</span>`:''}
+    </div>
+    ${t.desc?`<div style="font-size:.82rem;color:var(--muted);margin-bottom:9px">${t.desc}</div>`:''}
+    <div class="prog-wrap"><div class="prog-bar" style="width:${t.progress}%;background:${progBarColor(t)}"></div></div>
+    <div class="prog-label" style="margin-bottom:9px"><span>Week ${t.week}</span><span style="color:${col};font-weight:700">${t.progress}%</span></div>
+    ${depHtml}
+    <div style="margin-top:10px"><label style="font-size:.74rem;color:var(--muted);display:block;margin-bottom:4px">Update Status</label>
+    <select class="btn btn-ghost" style="width:100%" onchange="updateStatus('${t.id}',this.value);renderDayPanel()">
+      <option ${t.status==='Not Started'?'selected':''}>Not Started</option>
+      <option ${t.status==='In Progress'?'selected':''}>In Progress</option>
+      <option ${t.status==='Done'?'selected':''}>Done</option>
+    </select></div>`;
+  openModal('taskDetailModal');
+}
+
+// ── Dep Map ────────────────────────────────────────────
+let nodes=[],dragging=null,dragOffX=0,dragOffY=0,mapDirty=true;
+function nodeColorHex(t){return resolveColor(taskColor(t));}
+function drawMap(){
+  const canvas=document.getElementById('mapCanvas');if(!canvas)return;
+  const dpr=window.devicePixelRatio||1,W=canvas.parentElement.clientWidth||600,H=Math.max(320,Math.min(W*.65,480));
+  canvas.style.width=W+'px';canvas.style.height=H+'px';canvas.width=W*dpr;canvas.height=H*dpr;
+  const ctx=canvas.getContext('2d');ctx.scale(dpr,dpr);
+  if(mapDirty||nodes.length!==state.tasks.length){
+    nodes=state.tasks.map((t,i)=>{
+      const ex=nodes.find(n=>n.id===t.id);if(ex)return{...ex};
+      const cols=Math.max(3,Math.ceil(Math.sqrt(state.tasks.length)));
+      return{id:t.id,x:60+(i%cols)*(W-80)/Math.max(cols-1,1),y:60+Math.floor(i/cols)*100};
+    });mapDirty=false;
+  }
+  ctx.clearRect(0,0,W,H);
+  state.tasks.forEach(t=>{(t.deps||[]).forEach(depId=>{
+    const from=nodes.find(n=>n.id===depId),to=nodes.find(n=>n.id===t.id);if(!from||!to)return;
+    const dep=state.tasks.find(x=>x.id===depId),done=dep&&dep.status==='Done';
+    ctx.beginPath();ctx.moveTo(from.x,from.y);const mx=(from.x+to.x)/2;
+    ctx.bezierCurveTo(mx,from.y,mx,to.y,to.x,to.y);
+    ctx.strokeStyle=done?'#26de8160':'#ee5a2480';ctx.lineWidth=2;ctx.setLineDash([5,4]);ctx.stroke();ctx.setLineDash([]);
+    const ang=Math.atan2(to.y-from.y,to.x-from.x);
+    ctx.beginPath();ctx.moveTo(to.x,to.y);ctx.lineTo(to.x-12*Math.cos(ang-.4),to.y-12*Math.sin(ang-.4));ctx.lineTo(to.x-12*Math.cos(ang+.4),to.y-12*Math.sin(ang+.4));
+    ctx.closePath();ctx.fillStyle=done?'#26de81':'#ee5a24';ctx.fill();
+  });});
+  nodes.forEach(n=>{
+    const t=state.tasks.find(x=>x.id===n.id);if(!t)return;
+    const col=nodeColorHex(t),r=28;
+    ctx.beginPath();ctx.arc(n.x,n.y,r,0,Math.PI*2);ctx.fillStyle=col+'33';ctx.fill();ctx.strokeStyle=col;ctx.lineWidth=2.5;ctx.stroke();
+    ctx.fillStyle='#e8eaf6';ctx.font='bold 10px system-ui';ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText(t.title.length>13?t.title.slice(0,12)+'…':t.title,n.x,n.y);
+    ctx.fillStyle=col;ctx.beginPath();const pw=40,ph=11,px=n.x-pw/2,py=n.y+r+4;
+    ctx.roundRect(px,py,pw,ph,5);ctx.fill();ctx.fillStyle='#fff';ctx.font='bold 8px system-ui';ctx.fillText(t.progress+'%',n.x,py+5.5);
+  });
+  if(!state.tasks.length){ctx.fillStyle='#7986cb';ctx.font='13px system-ui';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('Add tasks with dependencies to see the map.',W/2,H/2);}
+  // Legend
+  let legendItems=[];
+  if(colorMode==='priority'){legendItems=[['#ee5a24','High'],['#f7b731','Medium'],['#26de81','Low']];}
+  else if(colorMode==='status'){legendItems=[['#7986cb','Not Started'],['#4ecdc4','In Progress'],['#26de81','Done']];}
+  else if(colorMode==='category'){legendItems=state.categories.map(c=>[c.color,c.name]);}
+  document.getElementById('mapLegend').innerHTML=legendItems.map(([c,l])=>`<span><i style="background:${c}"></i>${l}</span>`).join('');
+}
+const mapCanvas=document.getElementById('mapCanvas');
+function getPos(e){const r=mapCanvas.getBoundingClientRect();const cx=e.touches?e.touches[0].clientX:e.clientX,cy=e.touches?e.touches[0].clientY:e.clientY;return{x:cx-r.left,y:cy-r.top};}
+function findNode(x,y){return nodes.find(n=>Math.hypot(n.x-x,n.y-y)<32);}
+mapCanvas.addEventListener('mousedown',e=>{const p=getPos(e);const n=findNode(p.x,p.y);if(n){dragging=n;dragOffX=p.x-n.x;dragOffY=p.y-n.y;}});
+mapCanvas.addEventListener('mousemove',e=>{if(!dragging)return;const p=getPos(e);dragging.x=p.x-dragOffX;dragging.y=p.y-dragOffY;drawMap();});
+mapCanvas.addEventListener('mouseup',()=>{dragging=null;});
+mapCanvas.addEventListener('touchstart',e=>{e.preventDefault();const p=getPos(e);const n=findNode(p.x,p.y);if(n){dragging=n;dragOffX=p.x-n.x;dragOffY=p.y-n.y;}},{passive:false});
+mapCanvas.addEventListener('touchmove',e=>{e.preventDefault();if(!dragging)return;const p=getPos(e);dragging.x=p.x-dragOffX;dragging.y=p.y-dragOffY;drawMap();},{passive:false});
+mapCanvas.addEventListener('touchend',()=>{dragging=null;});
+window.addEventListener('resize',()=>{if(currentSection==='depmap')drawMap();});
+
+// ── Export ─────────────────────────────────────────────
+function escCSV(v){if(v==null)return'';const s=String(v);return s.includes(',')||s.includes('"')||s.includes('\n')?`"${s.replace(/"/g,'""')}"`:s;}
+function downloadFile(name,content,type){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([content],{type}));a.download=name;a.click();}
+function exportCSV(type){
+  let rows=[],headers=[];
+  if(type==='tasks'){headers=['Title','Desc','Priority','Status','Category','Progress%','Week','DueDate','Dependencies','Created'];rows=state.tasks.map(t=>[t.title,t.desc,t.priority,t.status,getCatName(t.categoryId),t.progress,t.week,t.dueDate||'',(t.deps||[]).map(id=>{const d=state.tasks.find(x=>x.id===id);return d?d.title:id;}).join('; '),fmtDate(t.created)]);}
+  else if(type==='logs'){headers=['Task','Week','Entry','Progress%','Date'];rows=state.logs.map(l=>{const t=state.tasks.find(x=>x.id===l.taskId);return[t?t.title:'',l.week,l.entry,l.progress,fmtDate(l.created)];});}
+  else if(type==='notes'){headers=['Title','Note','RelatedTask','Date'];rows=state.notes.map(n=>{const t=state.tasks.find(x=>x.id===n.taskId);return[n.title,n.body,t?t.title:'',fmtDate(n.created)];});}
+  else if(type==='reflections'){headers=['Week','WentWell','Challenges','NextWeek','Date'];rows=state.reflections.map(r=>[r.week,r.well,r.challenge,r.next,fmtDate(r.created)]);}
+  else if(type==='sessions'){headers=['Title','URL','Category','Notes','Date'];rows=state.sessions.map(s=>[s.title,s.url,s.cat,s.notes,fmtDate(s.created)]);}
+  const csv=[headers,...rows].map(r=>r.map(escCSV).join(',')).join('\n');
+  downloadFile(`wpt_${type}_${new Date().toISOString().slice(0,10)}.csv`,csv,'text/csv');
+}
+function exportJSON(){downloadFile(`wpt_backup_${new Date().toISOString().slice(0,10)}.json`,JSON.stringify(state,null,2),'application/json');}
+function importJSON(e){
+  const file=e.target.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=ev=>{try{const data=JSON.parse(ev.target.result);if(!data.tasks||!data.cycles)return alert('Invalid backup.');if(confirm('Replace all data?')){state=data;if(!state.sessions)state.sessions=[];if(!state.categories)state.categories=[];save();mapDirty=true;render();alert('Imported!');}}catch{alert('Parse error.');}};
+  reader.readAsText(file);e.target.value='';
+}
+
+// ── Init ───────────────────────────────────────────────
+load();render();
+</script>
+</body>
+</html>
